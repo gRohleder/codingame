@@ -1,0 +1,54 @@
+import sys
+import math
+from random import shuffle
+
+class Troop:
+    def __init__(self, id, level, x, y):
+        self.id = id
+        self.level = level
+        self.x = x
+        self.y = y
+        
+    def __repr__(self):
+        return '{} -> {}/({},{})'.format(self.id, self.level, self.x, self.y)
+
+class Building:
+    def __init__(self, type, x, y):
+        self.type = type
+        self.x = x
+        self.y = y
+        
+    def __repr__(self):
+        return '({},{})'.format(self.x, self.y)
+        
+class Cell:
+    def __init__(self, value, x, y):
+        self.value = value
+        self.x = x
+        self.y = y
+        
+    def __repr__(self):
+        return '{} -> ({},{})'.format(self.value, self.x, self.y)
+    
+def log(message):
+    print >> sys.stderr, message
+
+def flatList(list_of_list):
+    flat_list = []
+    for i in list_of_list:
+        flat_list+=i
+    return flat_list
+    
+def calcDistance(p1, p2):
+    return math.sqrt(((p1.x-p2.x)**2)+((p1.y-p2.y)**2))
+    
+def closest(p1, points):
+    closestDist = 10000
+    for point in points:
+        distance = calcDistance(p1, point)
+        if distance < closestDist:
+            closestDist = distance
+            closestPoint = point
+    return closestPoint
+
+        
