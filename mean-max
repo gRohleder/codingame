@@ -5,13 +5,46 @@ import math
 # the standard input according to the problem statement.
 mapRadius = 6000
 mapDiameter = mapRadius * 2
-reaperThrottle = 300
-destroyerThrottle = 300
-Reaper = 0
-Destroyer = 1
-Tanker = 3
-Wreck = 4
+my_rage = 0
 
+class Reaper:
+    type = 0
+    throttle = 300
+    
+class Destroyer:
+    type = 1
+    throttle = 300
+    
+class Doof:
+    type = 2
+    throttle = 300
+    
+class Tanker:
+    type = 3
+    throttle = 500
+    
+class Wreck:
+    type = 4
+
+class Tar:
+    type = 5
+    range = 2000
+    radius = 1000
+    duration = 3
+
+class Grenade:
+    range = 2000
+    radius = 1000
+    
+class Oil:
+    type = 6
+    range = 2000
+    radius = 1000
+    duration = 3    
+
+types = [Reaper, Destroyer, Doof, Tanker, Wreck, Tar, Grenade, Oil]
+looters = [Reaper, Destroyer, Doof]
+    
 class Unit:
     def __init__(self, id, type, player, mass, radius, x, y, vx, vy, extra1, extra2):
         self.id = id
@@ -27,14 +60,17 @@ class Unit:
         self.extra2 = extra2
         
     def __repr__(self):
-        return '{} of {} is a {} on ({}/{})'.format(self.id, self.player, self.type, self.x, self.y)
+        return '{} of {} is a {} on ({}/{}) with ({}/{})'.format(self.id, self.player, self.type, self.x, self.y, self.vx, self.vy)
     
     def isA(self, type):
         return self.type == type
         
     def isMy(self, type):
         return self.player == 0 and self.type == type
-        
+
+    def areNotMy(self, types):
+        return self.player != 0 and self.type in types
+
 def log(message):
     print(message , file=sys.stderr)
 
@@ -50,7 +86,7 @@ def closest(p1, points):
             closestPoint = point
     return closestPoint
 
-def moveReaper(myReaper, wrecks):
+def commandReaper(myReaper, wrecks):
     if (len(wrecks) == 0):
         return "WAIT"
         
@@ -58,19 +94,32 @@ def moveReaper(myReaper, wrecks):
     # Write an action using print
     # To debug: print("Debug messages...", file=sys.stderr)
     distance = int(calcDistance(myReaper, closestWreck))
-    throttle = distance if distance < reaperThrottle else reaperThrottle
+    throttle = distance if distance < Reaper.throttle else Reaper.throttle
     return "{} {} {}".format(closestWreck.x, closestWreck.y, throttle)
 
-def moveDestroyer(myDestroyer, myReaper, tankers):
+def commandDestroyer(myDestroyer, myReaper, units):
+    if (my_rage >= 60):
+        enemyUnits = list(filter(lambda unit: unit.areNotMy(looters), units))
+        closestEnemy = closest(myDestroyer, enemyUnits)
+        distance = int(calcDistance(myDestroyer, closestEnemy))
+        if (distance <= Grenade.range):
+            return "SKILL {} {}".format(closestEnemy.x, closestEnemy.y)
+    
+    tankers = list(filter(lambda unit: unit.isA(Tanker), units))
     if (len(tankers) == 0):
         return "WAIT"
         
     closestTankerToMyReaper = closest(myReaper, tankers)
-    log(closestTankerToMyReaper)
     distance = int(calcDistance(myDestroyer, closestTankerToMyReaper))
-    throttle = distance if distance < destroyerThrottle else destroyerThrottle
+    throttle = distance if distance < Destroyer.throttle else Destroyer.throttle
     return "{} {} {}".format(closestTankerToMyReaper.x, closestTankerToMyReaper.y, throttle)
-    
+
+def commandDoof(myDoof, units):
+    if (myDestroyer.x > 0):
+        return "{} 0 {}".format(-mapRadius, myDoof.type.throttle)
+    else:
+        return "{} 0 {}".format(mapRadius, myDoof.type.throttle)
+
 # game loop
 while True:
     my_score = int(input())
@@ -82,11 +131,10 @@ while True:
     unit_count = int(input())
     units = []
     wrecks = []
-    tankers = []
     for i in range(unit_count):
         unit_id, unit_type, player, mass, radius, x, y, vx, vy, extra1, extra2 = input().split()
         unit_id = int(unit_id)
-        unit_type = int(unit_type)
+        unit_type = types[int(unit_type)]
         player = int(player)
         mass = float(mass)
         radius = int(radius)
@@ -101,12 +149,11 @@ while True:
         units.append(unit)
         if (unit.isA(Wreck)):
             wrecks.append(unit)
-        elif (unit.isA(Tanker)):
-            tankers.append(unit)
 
     myReaper = next(filter(lambda unit: unit.isMy(Reaper), units))
     myDestroyer = next(filter(lambda unit: unit.isMy(Destroyer), units))
+    myDoof = next(filter(lambda unit: unit.isMy(Doof), units))
     
-    print(moveReaper(myReaper, wrecks))
-    print(moveDestroyer(myDestroyer, myReaper, tankers))
-    print("WAIT")
+    print(commandReaper(myReaper, wrecks))
+    print(commandDestroyer(myDestroyer, myReaper, units))
+    print(commandDoof(myDoof, units))
